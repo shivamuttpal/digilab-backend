@@ -8,6 +8,8 @@ const PORT = process.env.PORT || 3001;
 dotenv.config();
 
 // Connect to MongoDB (Make sure MongoDB is running) 
+
+
 mongoose.connect(`${process.env.DBURL}`, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -16,6 +18,18 @@ mongoose.connect(`${process.env.DBURL}`, {
 // Body parser middleware
 app.use(bodyParser.json());
 app.use(cors());
+
+
+const emailSchema = new mongoose.Schema({
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+});
+
+const Email = mongoose.model('Email', emailSchema);
+
 
 // Define MongoDB Schema for Settings
 const settingsSchema = new mongoose.Schema({
@@ -84,6 +98,39 @@ app.put('/api/settings', async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
+
+
+app.post('/api/emails', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Check if email already exists
+    const existingEmail = await Email.findOne({ email });
+
+    if (existingEmail) {
+      return res.status(400).json({ error: 'Email already exists.' });
+    }
+
+    // Create a new email record
+    const newEmail = await Email.create({ email });
+
+    res.json(newEmail);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// New GET route for fetching all emails
+app.get('/api/emails', async (req, res) => {
+  try {
+    const emails = await Email.find({});
+    res.json(emails);
+  } catch (error) {
+    res.status(500).send('Internal Server Error');
+  }
+});
+
 
 // Start server
 app.listen(PORT, () => {
